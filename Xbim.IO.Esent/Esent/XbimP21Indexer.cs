@@ -84,7 +84,7 @@ namespace Xbim.IO.Esent
 
         private readonly EsentEntityCursor _table;
 
-        private readonly EsentPersistedEntityInstanceCache _modelCache;
+        private readonly FilePersistedModel _modelCache;
         const int TransactionBatchSize = 100;
         private int _entityCount = 0;
         private readonly int _codePageOverride = -1;
@@ -96,7 +96,7 @@ namespace Xbim.IO.Esent
 
 
 
-        internal P21ToIndexParser(Stream inputP21, long streamSize,  EsentEntityCursor table, EsentPersistedEntityInstanceCache cache, int codePageOverride = -1)
+        internal P21ToIndexParser(Stream inputP21, long streamSize,  EsentEntityCursor table, FilePersistedModel cache, int codePageOverride = -1)
             : base(inputP21)
         {
 

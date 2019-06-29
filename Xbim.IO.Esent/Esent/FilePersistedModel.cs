@@ -18,15 +18,16 @@ namespace Xbim.IO.Esent
     /// IModel implementation for Esent DB based model support
     /// </summary>
 
-    public class FilePersistedModel : IModel, IFederatedModel, IDisposable
+    public partial class FilePersistedModel : IModel, IFederatedModel, IDisposable
     {
         #region Fields
 
 
         #region Model state fields
 
-        protected EsentPersistedEntityInstanceCache InstanceCache;
-        internal EsentPersistedEntityInstanceCache Cache
+        protected IFilePersistedStorage InstanceCache;
+
+        internal IFilePersistedStorage Cache
         {
             get { return InstanceCache; }
         }
@@ -280,6 +281,7 @@ namespace Xbim.IO.Esent
         {
             InstanceCache.FreeTable(table);
         }
+
         //Loads the property data of an entity, if it is not already loaded
         bool IModel.Activate(IPersistEntity entity)
         {
@@ -351,7 +353,19 @@ namespace Xbim.IO.Esent
         /// <param name="body"></param>
         public void ForEach<TSource>(IEnumerable<TSource> source, Action<TSource> body) where TSource : IPersistEntity
         {
-            InstanceCache.ForEach(source, body);
+            var table = GetEntityTable();
+            try
+            {
+                using (table.BeginReadOnlyTransaction())
+                {
+                    foreach (var item in source)
+                        body(item);
+                }
+            }
+            finally
+            {
+                FreeTable(table);
+            }
         }
 
 
@@ -646,33 +660,7 @@ namespace Xbim.IO.Esent
             Open(fileName, accessMode);
             _deleteOnClose = deleteOnClose;
         }
-
-        /// <summary>
-        /// Begins a cache of all data read from the model, improves performance where data is read many times
-        /// </summary>
-        public void CacheStart()
-        {
-            if (_editTransactionEntityCursor == null) //if we are in a transaction caching is on anyway
-                InstanceCache.CacheStart();
-        }
-        /// <summary>
-        /// Clears all read data in the cache
-        /// </summary>
-        public void CacheClear()
-        {
-            if (_editTransactionEntityCursor == null) //if we are in a transaction do not clear
-                InstanceCache.CacheClear();
-        }
-
-        /// <summary>
-        /// Stops further caching of data and clears the current cache
-        /// </summary>
-        public void CacheStop()
-        {
-            if (_editTransactionEntityCursor == null)  //if we are in a transaction do not stop
-                InstanceCache.CacheStop();
-        }
-
+        
         /// <summary>
         /// Opens an Xbim model only, to open Ifc, IfcZip and IfcXML files use the CreateFrom method
         /// </summary>
