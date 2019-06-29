@@ -12,24 +12,23 @@ namespace Xbim.IO.Esent
     /// </summary>
     public class XbimInstanceCollection : IEntityCollection
     {
-        protected readonly EsentPersistedEntityInstanceCache Cache;
-        private readonly FilePersistedModel _model;
+        protected readonly FilePersistedModel _model;
+        // private readonly FilePersistedModel _model;
         
         public IEnumerable<IPersistEntity> OfType(string stringType, bool activate)
         {
-            return Cache.OfType(stringType, activate);
+            return _model.OfType(stringType, activate);
         }
 
         internal XbimInstanceCollection(FilePersistedModel esentModel)
         {
-            Cache = esentModel.Cache;
             _model = esentModel;
         }
 
         /// <summary>
         /// Returns the total number of Ifc Instances in this model
         /// </summary>
-        public long Count { get { return Cache.Count;  } }
+        public long Count { get { return _model.Count;  } }
 
         /// <summary>
         /// Returns the count of the number of instances of the specified type
@@ -38,7 +37,7 @@ namespace Xbim.IO.Esent
         /// <returns></returns>
         public long CountOf<TIfcType>() where TIfcType : IPersistEntity
         {
-            return Cache.CountOf<TIfcType>(); 
+            return _model.CountOf<TIfcType>(); 
         }
         /// <summary>
         /// Returns all instances in the model of IfcType, IfcType may be an abstract Type
@@ -47,13 +46,13 @@ namespace Xbim.IO.Esent
         /// <returns></returns>
         public IEnumerable<TIfc> OfType<TIfc>(bool activate) where TIfc : IPersistEntity
         {
-            return Cache.OfType<TIfc>(activate);
+            return _model.OfType<TIfc>(activate);
         }
 
 
         public IEnumerable<T> Where<T>(Func<T, bool> condition, string inverseProperty, IPersistEntity inverseArgument) where T : IPersistEntity
         {
-            return Cache.Where(condition, inverseProperty, inverseArgument);
+            return _model.Where(condition, inverseProperty, inverseArgument);
         }
 
         public T FirstOrDefault<T>() where T : IPersistEntity
@@ -73,7 +72,7 @@ namespace Xbim.IO.Esent
 
         public IEnumerable<TIfc> OfType<TIfc>() where TIfc : IPersistEntity
         {
-            return Cache.OfType<TIfc>();
+            return _model.OfType<TIfc>();
         }
 
         //public IEnumerable<TIfcType> OfType<TIfcType>() where TIfcType : IPersistEntity
@@ -89,7 +88,7 @@ namespace Xbim.IO.Esent
         /// <returns></returns>
         public IEnumerable<TIfcType> Where<TIfcType>(Func<TIfcType, bool> expression) where TIfcType : IPersistEntity
         {
-            return Cache.Where(expression);
+            return _model.Where(expression);
         }
 
         /// <summary>
@@ -97,7 +96,7 @@ namespace Xbim.IO.Esent
         /// </summary>
         public IEnumerable<XbimInstanceHandle> Handles()
         {
-            return Cache.InstanceHandles;
+            return _model.InstanceHandles;
         }
 
 
@@ -108,7 +107,7 @@ namespace Xbim.IO.Esent
         /// <returns></returns>
         public IEnumerable<XbimInstanceHandle> Handles<T>()
         {
-            return Cache.InstanceHandlesOfType<T>();
+            return _model.InstanceHandlesOfType<T>();
         }
 
         /// <summary>
@@ -120,7 +119,7 @@ namespace Xbim.IO.Esent
         {
             get
             {
-                return Cache.GetInstance(label, true, true);
+                return _model.GetInstance(label, true, true);
             }
         }
        
@@ -131,8 +130,8 @@ namespace Xbim.IO.Esent
         /// <returns></returns>
         public IPersistEntity GetFromGeometryLabel(int geometryLabel)
         {
-            var filledGeomData = Cache.GetGeometryHandle(geometryLabel);
-            return Cache.GetInstance(filledGeomData.ProductLabel, true, true);
+            var filledGeomData = _model.GetGeometryHandle(geometryLabel);
+            return _model.GetInstance(filledGeomData.ProductLabel, true, true);
         }
 
 
@@ -170,7 +169,7 @@ namespace Xbim.IO.Esent
         /// <returns></returns>
         public IPersistEntity New(Type t)
         {
-            var entity = Cache.CreateNew(t);
+            var entity = _model.CreateNew(t);
             _model.HandleEntityChange(ChangeType.New, entity, 0);
             return entity;
 
@@ -185,7 +184,7 @@ namespace Xbim.IO.Esent
         /// <returns></returns>
         public  bool Contains(int entityLabel)
         {
-            return Cache.Contains(entityLabel);
+            return _model.Contains(entityLabel);
         }
 
         /// <summary>
@@ -195,19 +194,19 @@ namespace Xbim.IO.Esent
         /// <returns></returns>
         public  bool Contains(IPersistEntity instance)
         {
-            return Cache.Contains(instance);
+            return _model.Contains(instance);
         }
 
      
 
         IEnumerator<IPersistEntity> IEnumerable<IPersistEntity>.GetEnumerator()
         {
-            return new XbimInstancesEntityEnumerator(Cache);
+            return new XbimInstancesEntityEnumerator(_model);
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return new XbimInstancesEntityEnumerator(Cache);
+            return new XbimInstancesEntityEnumerator(_model);
         }
     }
 

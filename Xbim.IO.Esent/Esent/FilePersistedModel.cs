@@ -230,13 +230,15 @@ namespace Xbim.IO.Esent
                     if (entity != null)
                         //Ass entity to 'Modified' collection. This is the single point of access where all changes go through
                         //so it is the best place to keep the track reliably.
-                        Cache.AddModified(entity);
+                        AddModified(entity);
 
                     break;
                 default:
                     throw new ArgumentOutOfRangeException("changeType", changeType, null);
             }
         }
+
+
 
 
         /// <summary>
@@ -297,7 +299,7 @@ namespace Xbim.IO.Esent
                         return true;
 
                     //activate and set the flag
-                    InstanceCache.Activate(entity);
+                    Activate(entity);
                     FlagSetter.SetActivationFlag(entity, true);
                     return true;
                 }
@@ -332,7 +334,7 @@ namespace Xbim.IO.Esent
             try
             {
                 //check if write permission upgrade is required               
-                InstanceCache.BeginCaching();
+                BeginCaching();
                 var ret = InstanceCache.BeginTransaction(this, operationName);
                 _editTransactionEntityCursor = ret.entityCursor;
                 CurrentTransaction = ret.transaction;
@@ -1109,11 +1111,7 @@ namespace Xbim.IO.Esent
                 return _geometryStore;
             }
         }
-
-        //public static IStepFileHeader GetFileHeader(string fileName)
-        //{
-        //}
-
+        
         public static IStepFileHeader GetStepFileHeader(string fileName)
         {
             //create a temporary model
@@ -1122,7 +1120,7 @@ namespace Xbim.IO.Esent
 
             esentModel.InstanceCache.DatabaseName = fileName;
             IStepFileHeader header;
-            var entTable = esentModel.InstanceCache.GetEntityTable();
+            var entTable = esentModel.GetEntityTable();
             try
             {
                 using (entTable.BeginReadOnlyTransaction())
@@ -1146,7 +1144,7 @@ namespace Xbim.IO.Esent
         {
             Close();
             var dbName = Path.ChangeExtension(fileName, "xBIM");
-            InstanceCache.ImportModel(model, dbName, progDelegate);
+            ImportModel(model, dbName, progDelegate);
         }
 
 
@@ -1201,7 +1199,7 @@ namespace Xbim.IO.Esent
 
         public IList<XbimInstanceHandle> InstanceHandles
         {
-            get { return InstanceCache.InstanceHandles.ToList(); }
+            get { return CachedInstanceHandles.ToList(); }
         }
 
         public XbimSchemaVersion SchemaVersion

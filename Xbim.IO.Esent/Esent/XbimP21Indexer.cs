@@ -84,7 +84,7 @@ namespace Xbim.IO.Esent
 
         private readonly EsentEntityCursor _table;
 
-        private readonly FilePersistedModel _modelCache;
+        private readonly FilePersistedModel _model;
         const int TransactionBatchSize = 100;
         private int _entityCount = 0;
         private readonly int _codePageOverride = -1;
@@ -96,13 +96,13 @@ namespace Xbim.IO.Esent
 
 
 
-        internal P21ToIndexParser(Stream inputP21, long streamSize,  EsentEntityCursor table, FilePersistedModel cache, int codePageOverride = -1)
+        internal P21ToIndexParser(Stream inputP21, long streamSize,  EsentEntityCursor table, FilePersistedModel model, int codePageOverride = -1)
             : base(inputP21)
         {
 
             this._table = table;
             //  this.transaction = transaction;
-            _modelCache = cache;
+            _model = model;
             _entityCount = 0;
             _streamSize = streamSize;
             _codePageOverride = codePageOverride;
@@ -122,7 +122,7 @@ namespace Xbim.IO.Esent
         {
             _binaryWriter = new BinaryWriter(new MemoryStream(0x7FFF));
             _toStore = new BlockingCollection<Tuple<int, short, List<int>, byte[], bool>>(512);
-            if (_modelCache.IsCaching)
+            if (_model.IsCaching)
             {
                 _toProcess = new BlockingCollection<Tuple<int, Type, byte[]>>();
                 _cacheProcessor = Task.Factory.StartNew(() =>
@@ -134,7 +134,7 @@ namespace Xbim.IO.Esent
                         {
                             Tuple<int, Type, byte[]> h;
                             if (_toProcess.TryTake(out h))
-                                _modelCache.GetOrCreateInstanceFromCache(h.Item1, h.Item2, h.Item3);
+                                _model.GetOrCreateInstanceFromCache(h.Item1, h.Item2, h.Item3);
                         }
                     }
                     catch (InvalidOperationException)
@@ -186,16 +186,16 @@ namespace Xbim.IO.Esent
         {
             _toStore.CompleteAdding();
             _storeProcessor.Wait();
-            if (_modelCache.IsCaching)
+            if (_model.IsCaching)
             {
                 _toProcess.CompleteAdding();
                 _cacheProcessor.Wait();
                 _cacheProcessor.Dispose();
                 _cacheProcessor = null;
-                while (_modelCache.ForwardReferences.Count > 0)
+                while (_model.ForwardReferences.Count > 0)
                 {
-                    if (_modelCache.ForwardReferences.TryTake(out StepForwardReference forwardRef))
-                        forwardRef.Resolve(_modelCache.Read, _modelCache.Model.Metadata);
+                    if (_model.ForwardReferences.TryTake(out StepForwardReference forwardRef))
+                        forwardRef.Resolve(_model.Read, _model.Metadata);
                 }
             }
             _storeProcessor.Dispose();
@@ -322,7 +322,7 @@ namespace Xbim.IO.Esent
             {
 
                 _currentType = entityTypeName;
-                var type = _modelCache.Model.Metadata.ExpressType(_currentType);
+                var type = _model.Metadata.ExpressType(_currentType);
                 if (type == null)
                     throw new ArgumentException(string.Format("Invalid entity type {0}", _currentType));
                 _indexKeys = type.IndexedValues;
@@ -337,12 +337,12 @@ namespace Xbim.IO.Esent
             if (_currentType != null)
             {
                 _binaryWriter.Write((byte)P21ParseAction.EndEntity);
-                var type = _modelCache.Model.Metadata.ExpressType(_currentType);
+                var type = _model.Metadata.ExpressType(_currentType);
                 var data = _binaryWriter.BaseStream as MemoryStream;
                 var bytes = data.ToArray();
                 var keys = new List<int>(_indexKeyValues);
                 _toStore.Add(new Tuple<int, short, List<int>, byte[], bool>(_currentLabel, type.TypeId, keys, bytes, type.IndexedClass));
-                if (this._modelCache.IsCaching) _toProcess.Add(new Tuple<int, Type, byte[]>(_currentLabel, type.Type, bytes));
+                if (this._model.IsCaching) _toProcess.Add(new Tuple<int, Type, byte[]>(_currentLabel, type.Type, bytes));
             }
 
         }
