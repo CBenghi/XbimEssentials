@@ -73,7 +73,7 @@ namespace Xbim.IO.Esent
         private readonly Stack<Part21Entity> _processStack = new Stack<Part21Entity>();
         private PropertyValue _propertyValue;
         private int _listNestLevel = -1;
-        private readonly StepFileHeader _header = new StepFileHeader(StepFileHeader.HeaderCreationMode.LeaveEmpty, new EsentModel());
+        private readonly StepFileHeader _header = new StepFileHeader(StepFileHeader.HeaderCreationMode.LeaveEmpty, new FilePersistedModel());
 
         public StepFileHeader Header
         {
@@ -84,7 +84,7 @@ namespace Xbim.IO.Esent
 
         private readonly EsentEntityCursor _table;
 
-        private readonly PersistedEntityInstanceCache _modelCache;
+        private readonly EsentPersistedEntityInstanceCache _modelCache;
         const int TransactionBatchSize = 100;
         private int _entityCount = 0;
         private readonly int _codePageOverride = -1;
@@ -96,7 +96,7 @@ namespace Xbim.IO.Esent
 
 
 
-        internal P21ToIndexParser(Stream inputP21, long streamSize,  EsentEntityCursor table, PersistedEntityInstanceCache cache, int codePageOverride = -1)
+        internal P21ToIndexParser(Stream inputP21, long streamSize,  EsentEntityCursor table, EsentPersistedEntityInstanceCache cache, int codePageOverride = -1)
             : base(inputP21)
         {
 

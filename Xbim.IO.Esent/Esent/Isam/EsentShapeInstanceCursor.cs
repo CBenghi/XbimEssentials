@@ -53,11 +53,11 @@ namespace Xbim.IO.Esent
 
 
         #region Constructors
-        public EsentShapeInstanceCursor(EsentModel model, string database)
+        public EsentShapeInstanceCursor(FilePersistedModel model, string database)
             : this(model, database, OpenDatabaseGrbit.None)
         {
         }
-        public EsentShapeInstanceCursor(EsentModel model, string database, OpenDatabaseGrbit mode)
+        public EsentShapeInstanceCursor(FilePersistedModel model, string database, OpenDatabaseGrbit mode)
             : base(model, database, mode)
         {
             Api.JetOpenTable(this.Sesid, this.DbId, InstanceTableName, null, 0, mode == OpenDatabaseGrbit.ReadOnly ? OpenTableGrbit.ReadOnly :

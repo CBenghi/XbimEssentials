@@ -27,7 +27,7 @@ namespace Xbim.Essentials.Tests
         [MethodImpl(MethodImplOptions.NoOptimization)]
         static DefaultModelProviderFactoryTests()
         {
-            Type dummyReferenceToLoadEsentAsembly = typeof(Xbim.IO.Esent.EsentModel);
+            Type dummyReferenceToLoadEsentAsembly = typeof(Xbim.IO.Esent.FilePersistedModel);
         }
 
 

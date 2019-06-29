@@ -12,7 +12,7 @@ using Xbim.Common.Step21;
 
 namespace Xbim.IO.Esent
 {
-    public class EsentEntityCursor : EsentCursor
+    public class EsentEntityCursor : EsentCursor, IFilePeristedEntityCursor
     {
         private ILogger _logger;
 
@@ -191,7 +191,7 @@ namespace Xbim.IO.Esent
 
         }
 
-        public EsentEntityCursor(EsentModel model, string database)
+        public EsentEntityCursor(FilePersistedModel model, string database)
             : this(model, database, OpenDatabaseGrbit.None)
         {
         }
@@ -200,7 +200,7 @@ namespace Xbim.IO.Esent
         /// </summary>
         /// <param name="instance"></param>
         /// <param name="database"></param>
-        public EsentEntityCursor(EsentModel model, string database, OpenDatabaseGrbit mode)
+        public EsentEntityCursor(FilePersistedModel model, string database, OpenDatabaseGrbit mode)
             : base(model, database, mode)
         {
             _logger = XbimLogging.CreateLogger<EsentEntityCursor>(); ;
@@ -254,7 +254,7 @@ namespace Xbim.IO.Esent
 
         public JET_COLUMNID ColIdEntityData { get { return _colIdEntityData; } }
 
-        internal void WriteHeader(IStepFileHeader ifcFileHeader)
+        public void WriteHeader(IStepFileHeader ifcFileHeader)
         {
             var ms = new MemoryStream(4096);
             var bw = new BinaryWriter(ms);
@@ -291,7 +291,7 @@ namespace Xbim.IO.Esent
         /// Updates an entity, assumes a valid transaction is running
         /// </summary>
         /// <param name="toWrite"></param>
-        internal void UpdateEntity(IPersistEntity toWrite)
+        public void UpdateEntity(IPersistEntity toWrite)
         {
             var ms = new MemoryStream();
             var bw = new BinaryWriter(ms);
@@ -363,7 +363,7 @@ namespace Xbim.IO.Esent
         /// Adds an entity, assumes a valid transaction is running
         /// </summary>
         /// <param name="toWrite"></param>
-        internal void AddEntity(IPersistEntity toWrite)
+        public void AddEntity(IPersistEntity toWrite)
         {
             var ms = new MemoryStream();
             var bw = new BinaryWriter(ms);
@@ -380,7 +380,7 @@ namespace Xbim.IO.Esent
         /// <param name="typeId">Type identifer</param>
         /// <param name="indexKeys">Search keys to use specifiy null if no indices</param>
         /// <param name="data">property data</param>
-        internal void AddEntity(int currentLabel, short typeId, IEnumerable<int> indexKeys, byte[] data, bool? indexed, EsentLazyDBTransaction? trans = null)
+        public void AddEntity(int currentLabel, short typeId, IEnumerable<int> indexKeys, byte[] data, bool? indexed, EsentLazyDBTransaction? trans = null)
         {
             //Debug.WriteLine(currentLabel);
             try
@@ -450,7 +450,7 @@ namespace Xbim.IO.Esent
         /// </summary>
         /// <param name="type">Type of entity to create, this must support IPersistEntity</param>
         /// <returns>A handle to the entity</returns>
-        internal XbimInstanceHandle AddEntity(Type type)
+        public XbimInstanceHandle AddEntity(Type type)
         {
             //System.Diagnostics.Debug.Assert(typeof(IPersistEntity).IsAssignableFrom(type));
             var highest = RetrieveHighestLabel();
@@ -466,7 +466,7 @@ namespace Xbim.IO.Esent
         /// </summary>
         /// <param name="type">Type of entity to create, this must support IPersistIfcEntity</param>
         /// <returns>A handle to the entity</returns>
-        internal XbimInstanceHandle AddEntity(Type type, int entityLabel)
+        public XbimInstanceHandle AddEntity(Type type, int entityLabel)
         {
             var entityType = Model.Metadata.ExpressType(type);
             var h = new XbimInstanceHandle(Model, entityLabel, entityType.TypeId);
@@ -691,11 +691,11 @@ namespace Xbim.IO.Esent
 
     internal class XbimInstancesLabelEnumerator : IEnumerator<int>, IEnumerator
     {
-        private PersistedEntityInstanceCache cache;
+        private EsentPersistedEntityInstanceCache cache;
         private EsentEntityCursor cursor;
         private int current;
 
-        public XbimInstancesLabelEnumerator(PersistedEntityInstanceCache cache)
+        public XbimInstancesLabelEnumerator(EsentPersistedEntityInstanceCache cache)
         {
             this.cache = cache;
             cursor = cache.GetEntityTable();
@@ -741,11 +741,11 @@ namespace Xbim.IO.Esent
 
     internal class XbimInstancesEntityEnumerator : IEnumerator<IPersistEntity>, IEnumerator
     {
-        private PersistedEntityInstanceCache cache;
+        private EsentPersistedEntityInstanceCache cache;
         private EsentEntityCursor cursor;
         private int current;
 
-        public XbimInstancesEntityEnumerator(PersistedEntityInstanceCache cache)
+        public XbimInstancesEntityEnumerator(EsentPersistedEntityInstanceCache cache)
         {
             this.cache = cache;
             cursor = cache.GetEntityTable();

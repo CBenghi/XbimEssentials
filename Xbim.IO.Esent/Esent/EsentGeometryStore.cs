@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
 using Xbim.Common.Geometry;
-using static Xbim.IO.Esent.EsentModel;
+using static Xbim.IO.Esent.FilePersistedModel;
 
 namespace Xbim.IO.Esent
 {
@@ -9,24 +9,24 @@ namespace Xbim.IO.Esent
     {
         private ILogger Log => _esentModel.Logger;
 
-        private readonly EsentModel _esentModel;
+        private readonly FilePersistedModel _esentModel;
 
         private EsentGeometryInitialiser _currentTransaction = null;
         private EsentShapeInstanceCursor _shapeInstanceCursor;
         private EsentShapeGeometryCursor _shapeGeometryCursor;
         private bool _disposed;
 
-        public EsentGeometryStore(EsentModel esentModel )
+        public EsentGeometryStore(FilePersistedModel esentModel )
         {           
             _esentModel = esentModel;
         }
 
-        public EsentModel Model
+        public FilePersistedModel Model
         {
             get { return _esentModel; }
         }
 
-        private TableStatus _tableStatus = EsentModel.TableStatus.Unknown;
+        private TableStatus _tableStatus = FilePersistedModel.TableStatus.Unknown;
 
         private TableStatus TableStatus
         {

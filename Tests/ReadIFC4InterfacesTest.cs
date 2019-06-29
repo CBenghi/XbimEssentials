@@ -33,7 +33,7 @@ namespace Xbim.Essentials.Tests
         [TestMethod]
         public void LoadIfc4IntoDbTest()
         {
-            using (var model = new IO.Esent.EsentModel(ef4))
+            using (var model = new IO.Esent.FilePersistedModel(ef4))
             {
                 model.CreateFrom("SampleHouse4.ifc", null, null, true, true);
                 var project = model.Instances.FirstOrDefault<IIfcProject>();

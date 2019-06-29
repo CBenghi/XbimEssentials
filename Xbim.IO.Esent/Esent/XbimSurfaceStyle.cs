@@ -43,7 +43,7 @@ namespace Xbim.IO.Esent
           
         }
 
-        public T SurfaceStyle<T>(EsentModel model) where T: class, IPersistEntity
+        public T SurfaceStyle<T>(FilePersistedModel model) where T: class, IPersistEntity
         {
             if (IsIfcSurfaceStyle) return (T)model.Instances[_styleId]; 
             return null;

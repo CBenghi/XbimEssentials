@@ -18,7 +18,7 @@ namespace Xbim.IO.Esent
 
         public XbimParserState(IPersistEntity entity, ILogger logger = null)
         {
-            _logger = logger ?? XbimLogging.CreateLogger<EsentModel>();
+            _logger = logger ?? XbimLogging.CreateLogger<FilePersistedModel>();
             _currentInstance = new Part21Entity(entity);
             _processStack.Push(_currentInstance);
             _metadata = entity.Model.Metadata;

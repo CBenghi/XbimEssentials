@@ -44,7 +44,7 @@ namespace Xbim.Essentials.Tests.Utilities
             });
             ModelProviders.Add((factory) =>
             {
-                return EsentModel.CreateTemporaryModel(factory);
+                return FilePersistedModel.CreateTemporaryModel(factory);
             });
         }
 

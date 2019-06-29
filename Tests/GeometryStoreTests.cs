@@ -274,7 +274,7 @@ namespace Xbim.IO.Tests
                 model.Close();
             }
             Thread.SpinWait(200);
-            Assert.IsTrue(IO.Esent.EsentModel.ModelOpenCount == 0);
+            Assert.IsTrue(IO.Esent.FilePersistedModel.ModelOpenCount == 0);
 
         }
 
@@ -282,7 +282,7 @@ namespace Xbim.IO.Tests
         [TestMethod]
         public void EsentGeometryStoreBatchTest()
         {
-            using (var model = new IO.Esent.EsentModel(ef4))
+            using (var model = new IO.Esent.FilePersistedModel(ef4))
             {
                 model.CreateFrom("SampleHouse4.ifc", null, null, true);
                 var store = model.GeometryStore;
@@ -457,7 +457,7 @@ namespace Xbim.IO.Tests
         [TestMethod]
         public void IfcStoreGeometryGeometryClearTest()
         {
-            using (var model = new IO.Esent.EsentModel(ef4))
+            using (var model = new IO.Esent.FilePersistedModel(ef4))
             {
                 model.CreateFrom("SampleHouse4.ifc", null, null, true);
                 var store = model.GeometryStore;
@@ -533,7 +533,7 @@ namespace Xbim.IO.Tests
         [TestMethod]
         public void EsentGeometryStoreReadTest()
         {
-            using (var model = IO.Esent.EsentModel.CreateTemporaryModel(ef4))
+            using (var model = IO.Esent.FilePersistedModel.CreateTemporaryModel(ef4))
             {
                 var store = model.GeometryStore;
                 using (var txn = store.BeginInit())

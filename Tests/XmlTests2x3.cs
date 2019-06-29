@@ -27,7 +27,7 @@ namespace Xbim.Essentials.Tests
                 return;
 
             const string output = "..\\..\\4walls1floorSite.ifcxml";
-            using (var esent = new IO.Esent.EsentModel(new EntityFactoryIfc2x3()))
+            using (var esent = new IO.Esent.FilePersistedModel(new EntityFactoryIfc2x3()))
             {
                 string fileName =  Guid.NewGuid() + ".xbim";
                 esent.CreateFrom("4walls1floorSite.ifc", fileName, null, true, true);
@@ -37,7 +37,7 @@ namespace Xbim.Essentials.Tests
                 esent.Close();
             }
 
-            using (var esent = new IO.Esent.EsentModel(new EntityFactoryIfc2x3()))
+            using (var esent = new IO.Esent.FilePersistedModel(new EntityFactoryIfc2x3()))
             {
                 string fileName =  Guid.NewGuid() + ".xbim";
                 var success = esent.CreateFrom(output, fileName, null, true, true);

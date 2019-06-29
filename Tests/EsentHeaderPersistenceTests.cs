@@ -17,7 +17,7 @@ namespace Xbim.Essentials.Tests
             const string db = "headertest.xbim";
             const string name = "Testing model";
             const string schema = "TEST";
-            using (var model = IO.Esent.EsentModel.CreateModel(ef2x3, db))
+            using (var model = IO.Esent.FilePersistedModel.CreateModel(ef2x3, db))
             {
                 Assert.IsNotNull(model.Header);
                 var called = 0;
@@ -30,7 +30,7 @@ namespace Xbim.Essentials.Tests
                 Assert.AreEqual(3, called);
             }
 
-            using (var model = new IO.Esent.EsentModel(ef2x3))
+            using (var model = new IO.Esent.FilePersistedModel(ef2x3))
             {
                 model.Open(db);
                 Assert.AreEqual(name, model.Header.FileName.Name);

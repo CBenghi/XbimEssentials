@@ -19,7 +19,7 @@ namespace Xbim.Ifc
     /// to provide different persistance performance characteristics, depending on the use-case and the consumer's inputs.
     /// </summary>
     /// <remarks>This store permits a <see cref="MemoryModel"/> to be used where it's appropriate, while switching to an
-    /// <see cref="EsentModel"/> when persistance is required, or a source model is above a size threshold.
+    /// <see cref="FilePersistedModel"/> when persistance is required, or a source model is above a size threshold.
     /// The store also permits a <see cref="MemoryModel"/> to persisted.
     /// </remarks>
     public class HeuristicModelProvider : BaseModelProvider
@@ -42,7 +42,7 @@ namespace Xbim.Ifc
         /// <param name="model"></param>
         public override void Close(IModel model)
         {
-            if (model is EsentModel esentSub)
+            if (model is FilePersistedModel esentSub)
                 esentSub.Close();
 
             // memory models don't need closing
@@ -58,7 +58,7 @@ namespace Xbim.Ifc
         public override IModel Create(XbimSchemaVersion ifcVersion, string dbPath)
         {
             var factory = GetFactory(ifcVersion);
-            var model = EsentModel.CreateModel(factory, dbPath);
+            var model = FilePersistedModel.CreateModel(factory, dbPath);
             return model;
 
         }
@@ -74,7 +74,7 @@ namespace Xbim.Ifc
             var factory = GetFactory(ifcVersion);
             if (storageType == XbimStoreType.EsentDatabase)
             {
-                return EsentModel.CreateTemporaryModel(factory);
+                return FilePersistedModel.CreateTemporaryModel(factory);
             }
 
             return new MemoryModel(factory);
@@ -89,7 +89,7 @@ namespace Xbim.Ifc
         {
             if (model == null)
                 return null;
-            if (model is EsentModel esentModel)
+            if (model is FilePersistedModel esentModel)
             {
                 return esentModel.DatabaseName;
             }
@@ -114,7 +114,7 @@ namespace Xbim.Ifc
             }
 
             // Have to use Esent for internal format
-            var stepHeader = EsentModel.GetStepFileHeader(modelPath);
+            var stepHeader = FilePersistedModel.GetStepFileHeader(modelPath);
             IList<string> schemas = stepHeader.FileSchema.Schemas;
             var schemaIdentifier = string.Join(", ", schemas);
             foreach (var schema in schemas)
@@ -308,7 +308,7 @@ namespace Xbim.Ifc
         /// <param name="progDelegate"></param>
         public override void Persist(IModel model, string fileName, ReportProgressDelegate progDelegate = null)
         {
-            if (model is EsentModel esentModel)
+            if (model is FilePersistedModel esentModel)
             {
                 var fullSourcePath = Path.GetFullPath(esentModel.DatabaseName);
                 var fullTargetPath = Path.GetFullPath(fileName);
@@ -318,17 +318,17 @@ namespace Xbim.Ifc
 
             // Create a new Esent model for this Model => Model copy
             var factory = GetFactory(model.SchemaVersion);
-            using (var esentDb = new EsentModel(factory))
+            using (var esentDb = new FilePersistedModel(factory))
             {
                 esentDb.CreateFrom(model, fileName, progDelegate);
                 esentDb.Close();
             }
         }
 
-        private EsentModel CreateEsentModel(XbimSchemaVersion schema, int codePageOverride)
+        private FilePersistedModel CreateEsentModel(XbimSchemaVersion schema, int codePageOverride)
         {
             var factory = GetFactory(schema);
-            var model = new EsentModel(factory)
+            var model = new FilePersistedModel(factory)
             {
                 CodePageOverride = codePageOverride
             };

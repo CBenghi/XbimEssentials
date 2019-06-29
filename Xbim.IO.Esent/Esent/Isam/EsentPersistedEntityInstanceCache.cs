@@ -8,8 +8,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Xml;
-using Microsoft.Isam.Esent.Interop;
-using Microsoft.Isam.Esent.Interop.Windows7;
 using Xbim.Common;
 using Xbim.Common.Exceptions;
 using Xbim.Common.Geometry;
@@ -20,15 +18,17 @@ using Microsoft.Extensions.Logging;
 using System.IO.Compression;
 using Xbim.IO.Xml;
 using Xbim.Common.Step21;
+using Microsoft.Isam.Esent.Interop;
+using Microsoft.Isam.Esent.Interop.Windows7;
 
 namespace Xbim.IO.Esent
 {
-    public class PersistedEntityInstanceCache : IDisposable
+    public class EsentPersistedEntityInstanceCache : IDisposable
     {
         /// <summary>
         /// Holds a collection of all currently opened instances in this process
         /// </summary>
-        static readonly HashSet<PersistedEntityInstanceCache> OpenInstances;
+        static readonly HashSet<EsentPersistedEntityInstanceCache> OpenInstances;
 
         #region ESE Database
 
@@ -42,13 +42,13 @@ namespace Xbim.IO.Esent
         private const int MaxCachedGeometryTables = 32;
 
 
-        static PersistedEntityInstanceCache()
+        static EsentPersistedEntityInstanceCache()
         {
             SystemParameters.DatabasePageSize = 4096;
             SystemParameters.CacheSizeMin = cacheSizeInBytes / SystemParameters.DatabasePageSize;
             SystemParameters.CacheSizeMax = cacheSizeInBytes / SystemParameters.DatabasePageSize;
             SystemParameters.MaxInstances = 128; //maximum number of models that can be opened at once, the abs max is 1024
-            OpenInstances = new HashSet<PersistedEntityInstanceCache>();
+            OpenInstances = new HashSet<EsentPersistedEntityInstanceCache>();
         }
 
         internal static int ModelOpenCount
@@ -88,12 +88,12 @@ namespace Xbim.IO.Esent
         #endregion
 
         private string _databaseName;
-        private readonly EsentModel _model;
+        private readonly FilePersistedModel _model;
         private bool _disposed;
         private bool _caching;
         private bool _previousCaching;
 
-        public PersistedEntityInstanceCache(EsentModel model, IEntityFactory factory)
+        public EsentPersistedEntityInstanceCache(FilePersistedModel model, IEntityFactory factory)
         {
             _factory = factory;
             _jetInstance = CreateInstance("XbimInstance");
@@ -185,8 +185,8 @@ namespace Xbim.IO.Esent
         private static bool EnsureGeometryTables(Session session, JET_DBID dbid)
         {
 
-            if (!HasTable(XbimGeometryCursor.GeometryTableName, session, dbid))
-                XbimGeometryCursor.CreateTable(session, dbid);
+            if (!HasTable(EsentXbimGeometryCursor.GeometryTableName, session, dbid))
+                EsentXbimGeometryCursor.CreateTable(session, dbid);
             if (!HasTable(EsentShapeGeometryCursor.GeometryTableName, session, dbid))
                 EsentShapeGeometryCursor.CreateTable(session, dbid);
             if (!HasTable(EsentShapeInstanceCursor.InstanceTableName, session, dbid))
@@ -282,27 +282,34 @@ namespace Xbim.IO.Esent
             return openMode;
         }
 
+        internal (XbimReadWriteTransaction transaction, IFilePeristedEntityCursor entityCursor) BeginTransaction(FilePersistedModel filePersistedModel, string operationName)
+        {
+            var editTransactionEntityCursor = GetWriteableEntityTable();
+            var txn = new XbimReadWriteTransaction(filePersistedModel, editTransactionEntityCursor.BeginLazyTransaction(), operationName);
+            return (txn, editTransactionEntityCursor);
+        }
+
         /// <summary>
         /// Returns a cached or new Geometry Table, assumes the database filename has been specified
         /// </summary>
         /// <returns></returns>
-        internal XbimGeometryCursor GetGeometryTable()
+        internal EsentXbimGeometryCursor GetGeometryTable()
         {
             Debug.Assert(!string.IsNullOrEmpty(_databaseName));
             lock (_lockObject)
             {
                 for (var i = 0; i < _geometryTables.Length; ++i)
                 {
-                    if (null != _geometryTables[i] && _geometryTables[i] is XbimGeometryCursor)
+                    if (null != _geometryTables[i] && _geometryTables[i] is EsentXbimGeometryCursor)
                     {
                         var table = _geometryTables[i];
                         _geometryTables[i] = null;
-                        return (XbimGeometryCursor)table;
+                        return (EsentXbimGeometryCursor)table;
                     }
                 }
             }
             var openMode = AttachedDatabase();
-            return new XbimGeometryCursor(_model, _databaseName, openMode);
+            return new EsentXbimGeometryCursor(_model, _databaseName, openMode);
         }
 
         /// <summary>
@@ -335,7 +342,7 @@ namespace Xbim.IO.Esent
         /// and dispose of it otherwise.
         /// </summary>
         /// <param name="table">The cursor to free.</param>
-        public void FreeTable(XbimGeometryCursor table)
+        public void FreeTable(EsentXbimGeometryCursor table)
         {
             Debug.Assert(null != table, "Freeing a null table");
 
@@ -1481,7 +1488,7 @@ namespace Xbim.IO.Esent
             GC.SuppressFinalize(this);
         }
 
-        ~PersistedEntityInstanceCache()
+        ~EsentPersistedEntityInstanceCache()
         {
             Dispose(false);
             GC.SuppressFinalize(this);
@@ -2163,7 +2170,7 @@ namespace Xbim.IO.Esent
         /// <summary>
         /// Writes the content of the modified cache to the table, assumes a transaction is in scope, modified and create new caches are cleared
         /// </summary>
-        internal void Write(EsentEntityCursor entityTable)
+        internal void Write(IFilePeristedEntityCursor entityTable)
         {
             foreach (var entity in ModifiedEntities.Values)
             {
@@ -2301,7 +2308,7 @@ namespace Xbim.IO.Esent
             }
         }
 
-        public EsentModel Model
+        public FilePersistedModel Model
         {
             get
             {
@@ -2367,7 +2374,7 @@ namespace Xbim.IO.Esent
             CleanTableArrays(true);
             var returnVal = true;
             returnVal &= DeleteJetTable(EsentShapeInstanceCursor.InstanceTableName);
-            returnVal &= DeleteJetTable(XbimGeometryCursor.GeometryTableName);
+            returnVal &= DeleteJetTable(EsentXbimGeometryCursor.GeometryTableName);
             returnVal &= DeleteJetTable(EsentShapeGeometryCursor.GeometryTableName);
             return returnVal;
         }
@@ -2380,7 +2387,7 @@ namespace Xbim.IO.Esent
 
         internal bool DatabaseHasGeometryTable()
         {
-            return HasTable(XbimGeometryCursor.GeometryTableName);
+            return HasTable(EsentXbimGeometryCursor.GeometryTableName);
         }
 
         internal bool HasTable(string name)

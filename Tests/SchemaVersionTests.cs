@@ -30,17 +30,17 @@ namespace Xbim.Essentials.Tests
             
             #endregion
             #region Esent Models
-            using (var model = new IO.Esent.EsentModel(new Ifc2x3.EntityFactoryIfc2x3()))
+            using (var model = new IO.Esent.FilePersistedModel(new Ifc2x3.EntityFactoryIfc2x3()))
             {
                 var iModel = model as IModel;
                 Assert.IsTrue(model.SchemaVersion == XbimSchemaVersion.Ifc2X3);
             }
-            using (var model = new IO.Esent.EsentModel(new Ifc4.EntityFactoryIfc4()))
+            using (var model = new IO.Esent.FilePersistedModel(new Ifc4.EntityFactoryIfc4()))
             {
                 var iModel = model as IModel;
                 Assert.IsTrue(model.SchemaVersion == XbimSchemaVersion.Ifc4);
             }
-            using (var model = new IO.Esent.EsentModel(new Ifc4.EntityFactoryIfc4x1()))
+            using (var model = new IO.Esent.FilePersistedModel(new Ifc4.EntityFactoryIfc4x1()))
             {
                 var iModel = model as IModel;
                 Assert.IsTrue(model.SchemaVersion == XbimSchemaVersion.Ifc4x1);

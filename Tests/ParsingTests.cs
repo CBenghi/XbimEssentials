@@ -257,7 +257,7 @@ namespace Xbim.Essentials.Tests
                 Assert.AreEqual(0, errCount);
             }
 
-            using (var model = new Xbim.IO.Esent.EsentModel( ef2x3))
+            using (var model = new Xbim.IO.Esent.FilePersistedModel( ef2x3))
             {
                 var errCount = model.CreateFrom("NewlinesInStrings.ifc");
                 Assert.AreEqual(true, errCount);
@@ -808,7 +808,7 @@ namespace Xbim.Essentials.Tests
                 Assert.AreEqual(0, errCount);
             }
 
-            using (var model = new Xbim.IO.Esent.EsentModel( ef2x3))
+            using (var model = new Xbim.IO.Esent.FilePersistedModel( ef2x3))
             {
                 var errCount = model.CreateFrom("ifc2x3_final_wall.ifc");
                 Assert.AreEqual(true, errCount);

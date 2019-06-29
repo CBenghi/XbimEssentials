@@ -12,7 +12,7 @@ namespace Xbim.Essentials.Tests
         [TestMethod]
         public void FileVersionIsCorrect()
         {
-            var m = new EsentModel(new EntityFactoryIfc4());
+            var m = new FilePersistedModel(new EntityFactoryIfc4());
 
             m.Open("Monolith-NoGeomTables.xBIM", XbimDBAccess.ReadWrite);
             Assert.AreEqual(0, m.GeometrySupportLevel, "GeometrySupportLevel should be 0");

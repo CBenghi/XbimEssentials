@@ -16,7 +16,7 @@ namespace Xbim.IO.Esent
         /// True if we are in a transaction.
         /// </summary>
         protected bool InTransaction;
-        protected EsentModel Model;
+        protected FilePersistedModel Model;
         private EsentReadOnlyTransaction _readTransaction;
 
         protected XbimReadTransaction()
@@ -24,7 +24,7 @@ namespace Xbim.IO.Esent
 
         }
 
-        internal XbimReadTransaction(EsentModel theModel, EsentReadOnlyTransaction txn)
+        internal XbimReadTransaction(FilePersistedModel theModel, EsentReadOnlyTransaction txn)
         {
             Model = theModel;
             _readTransaction = txn;

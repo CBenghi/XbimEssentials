@@ -18,27 +18,24 @@ namespace Xbim.IO.Esent
     /// IModel implementation for Esent DB based model support
     /// </summary>
 
-    public class EsentModel : IModel, IFederatedModel, IDisposable
+    public class FilePersistedModel : IModel, IFederatedModel, IDisposable
     {
         #region Fields
 
 
         #region Model state fields
 
-        protected PersistedEntityInstanceCache InstanceCache;
-        internal PersistedEntityInstanceCache Cache
+        protected EsentPersistedEntityInstanceCache InstanceCache;
+        internal EsentPersistedEntityInstanceCache Cache
         {
             get { return InstanceCache; }
         }
 
         private bool _disposed;
 
-        private EsentEntityCursor _editTransactionEntityCursor;
-
+        private IFilePeristedEntityCursor _editTransactionEntityCursor;
         
-
         private bool _deleteOnClose;
-
 
         private int _codePageOverrideForStepFiles = -1;
 
@@ -68,9 +65,9 @@ namespace Xbim.IO.Esent
         }
 
 
-        public EsentModel(IEntityFactory factory)
+        public FilePersistedModel(IEntityFactory factory)
         {
-            Logger = XbimLogging.CreateLogger<EsentModel>();
+            Logger = XbimLogging.CreateLogger<FilePersistedModel>();
             Init(factory);
         }
 
@@ -78,15 +75,15 @@ namespace Xbim.IO.Esent
         /// Only inherited models can call parameter-less constructor and it is their responsibility to 
         /// call Init() as the very first thing.
         /// </summary>
-        internal EsentModel()
+        internal FilePersistedModel()
         {
-            Logger = XbimLogging.CreateLogger<EsentModel>();
+            Logger = XbimLogging.CreateLogger<FilePersistedModel>();
         }
 
         protected void Init(IEntityFactory factory)
         {
             _factory = factory;
-            InstanceCache = new PersistedEntityInstanceCache(this, factory);
+            InstanceCache = new EsentPersistedEntityInstanceCache(this, factory);
             InstancesLocal = new XbimInstanceCollection(this);
             var r = new Random();
             UserDefinedId = (short)r.Next(short.MaxValue); // initialise value at random to reduce chance of duplicates
@@ -106,7 +103,7 @@ namespace Xbim.IO.Esent
         {
             get
             {
-                return PersistedEntityInstanceCache.ModelOpenCount;
+                return EsentPersistedEntityInstanceCache.ModelOpenCount;
             }
         }
 
@@ -245,7 +242,7 @@ namespace Xbim.IO.Esent
         /// Starts a transaction to allow bulk updates on the geometry table, FreeGeometry Table should be called when no longer required
         /// </summary>
         /// <returns></returns>
-        internal XbimGeometryCursor GetGeometryTable()
+        internal EsentXbimGeometryCursor GetGeometryTable()
         {
             return InstanceCache.GetGeometryTable();
         }
@@ -254,7 +251,7 @@ namespace Xbim.IO.Esent
         /// Returns the table to the cache for reuse
         /// </summary>
         /// <param name="table"></param>
-        public void FreeTable(XbimGeometryCursor table)
+        public void FreeTable(EsentXbimGeometryCursor table)
         {
             InstanceCache.FreeTable(table);
         }
@@ -310,7 +307,7 @@ namespace Xbim.IO.Esent
         }
 
         #region Transaction support
-        public XbimReadWriteTransaction BeginTransaction()
+        public FilePersistedTransaction BeginTransaction()
         {
             return BeginTransaction(null);
         }
@@ -323,7 +320,7 @@ namespace Xbim.IO.Esent
             }
         }
 
-        public XbimReadWriteTransaction BeginTransaction(string operationName)
+        public FilePersistedTransaction BeginTransaction(string operationName)
         {
             if (InverseCache != null)
                 throw new XbimException("Transaction can't be open when cache is in operation.");
@@ -333,22 +330,17 @@ namespace Xbim.IO.Esent
             try
             {
                 //check if write permission upgrade is required               
-                _editTransactionEntityCursor = InstanceCache.GetWriteableEntityTable();
                 InstanceCache.BeginCaching();
-                var txn = new XbimReadWriteTransaction(this, _editTransactionEntityCursor.BeginLazyTransaction(), operationName);
-                CurrentTransaction = txn;
-                return txn;
+                var ret = InstanceCache.BeginTransaction(this, operationName);
+                _editTransactionEntityCursor = ret.entityCursor;
+                CurrentTransaction = ret.transaction;
+                return ret.transaction;
             }
             catch (Exception e)
             {
-
                 throw new XbimException("Failed to create ReadWrite transaction", e);
             }
-
-
         }
-
-
 
         /// <summary>
         /// Performs a set of actions on a collection of entities inside a single read only transaction
@@ -478,13 +470,13 @@ namespace Xbim.IO.Esent
         /// It will be returned open for read write operations
         /// </summary>
         /// <returns></returns>
-        static public EsentModel CreateTemporaryModel(IEntityFactory factory)
+        static public FilePersistedModel CreateTemporaryModel(IEntityFactory factory)
         {
 
             var tmpFileName = Path.GetTempFileName();
             try
             {
-                var model = new EsentModel(factory);
+                var model = new FilePersistedModel(factory);
                 model.CreateDatabase(tmpFileName);
                 model.Open(tmpFileName, XbimDBAccess.ReadWrite, true);
                 model.Header = new StepFileHeader(StepFileHeader.HeaderCreationMode.InitWithXbimDefaults, model);
@@ -518,13 +510,13 @@ namespace Xbim.IO.Esent
         /// <param name="dbFileName">Name of the Xbim file</param>
         /// <param name="access"></param>
         /// <returns></returns>
-        static public EsentModel CreateModel(IEntityFactory factory, string dbFileName, XbimDBAccess access = XbimDBAccess.ReadWrite)
+        static public FilePersistedModel CreateModel(IEntityFactory factory, string dbFileName, XbimDBAccess access = XbimDBAccess.ReadWrite)
         {
             try
             {
                 if (string.IsNullOrWhiteSpace(Path.GetExtension(dbFileName)))
                     dbFileName += ".xBIM";
-                var model = new EsentModel(factory);
+                var model = new FilePersistedModel(factory);
                 model.CreateDatabase(dbFileName);
                 model.Open(dbFileName, access);
                 model.Header = new StepFileHeader(StepFileHeader.HeaderCreationMode.InitWithXbimDefaults, model) { FileName = { Name = dbFileName } };
@@ -765,7 +757,7 @@ namespace Xbim.IO.Esent
             InstanceCache.Print();
         }
 
-        ~EsentModel()
+        ~FilePersistedModel()
         {
             Dispose(false);
         }
@@ -946,7 +938,7 @@ namespace Xbim.IO.Esent
             InstanceCache.Write(_editTransactionEntityCursor);
         }
 
-        internal EsentEntityCursor GetTransactingCursor()
+        internal IFilePeristedEntityCursor GetTransactingCursor()
         {
             Debug.Assert(_editTransactionEntityCursor != null);
             return _editTransactionEntityCursor;
@@ -1097,7 +1089,7 @@ namespace Xbim.IO.Esent
             {
                 foreach (var h in InstanceHandles)
                     yield return h;
-                foreach (var refModel in ReferencedModels.Where(r => r.Model is EsentModel).Select(r => r.Model as EsentModel))
+                foreach (var refModel in ReferencedModels.Where(r => r.Model is FilePersistedModel).Select(r => r.Model as FilePersistedModel))
                     foreach (var h in refModel.AllInstancesHandles)
                         yield return h;
             }
@@ -1107,8 +1099,8 @@ namespace Xbim.IO.Esent
         {
             short iId = 0;
             var allModels =
-                (new[] { this }).Concat(ReferencedModels.Where(rm => rm.Model is EsentModel).Select(rm => rm.Model))
-                    .Cast<EsentModel>();
+                (new[] { this }).Concat(ReferencedModels.Where(rm => rm.Model is FilePersistedModel).Select(rm => rm.Model))
+                    .Cast<FilePersistedModel>();
             foreach (var model in allModels)
             {
                 model.UserDefinedId = iId++;
@@ -1137,8 +1129,8 @@ namespace Xbim.IO.Esent
         public static IStepFileHeader GetStepFileHeader(string fileName)
         {
             //create a temporary model
-            var esentModel = new EsentModel();
-            esentModel.InstanceCache = new PersistedEntityInstanceCache(esentModel, null);
+            var esentModel = new FilePersistedModel();
+            esentModel.InstanceCache = new EsentPersistedEntityInstanceCache(esentModel, null);
 
             esentModel.InstanceCache.DatabaseName = fileName;
             IStepFileHeader header;

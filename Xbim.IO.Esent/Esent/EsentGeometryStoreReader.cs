@@ -7,7 +7,7 @@ namespace Xbim.IO.Esent
 {
     internal class EsentGeometryStoreReader : IGeometryStoreReader
     {
-        private readonly EsentModel _esentModel;
+        private readonly FilePersistedModel _esentModel;
         private readonly EsentShapeGeometryCursor _shapeGeometryCursor;
         private readonly EsentShapeInstanceCursor _shapeInstanceCursor;
         private EsentReadOnlyTransaction _shapeGeometryTransaction;
@@ -15,7 +15,7 @@ namespace Xbim.IO.Esent
         private readonly XbimContextRegionCollection _regionsList;
         private readonly HashSet<int> _contextIds;
 
-        public EsentGeometryStoreReader(EsentModel esentModel)
+        public EsentGeometryStoreReader(FilePersistedModel esentModel)
         {
             _esentModel = esentModel;
             _shapeGeometryCursor = _esentModel.GetShapeGeometryTable();
@@ -176,7 +176,6 @@ namespace Xbim.IO.Esent
         {
             return _shapeInstanceCursor.TrySeekShapeInstanceOfProduct(entity.EntityLabel);
         }
-
 
         public ISet<int> StyleIds
         {

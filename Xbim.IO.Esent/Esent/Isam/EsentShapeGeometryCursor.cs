@@ -48,11 +48,11 @@ namespace Xbim.IO.Esent
 
 
         #region Constructors
-        public EsentShapeGeometryCursor(EsentModel model, string database)
+        public EsentShapeGeometryCursor(FilePersistedModel model, string database)
             : this(model, database, OpenDatabaseGrbit.None)
         {
         }
-        public EsentShapeGeometryCursor(EsentModel model, string database, OpenDatabaseGrbit mode)
+        public EsentShapeGeometryCursor(FilePersistedModel model, string database, OpenDatabaseGrbit mode)
             : base(model, database, mode)
         {
             

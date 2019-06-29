@@ -10,7 +10,7 @@ namespace Xbim.IO.Esent
     /// <summary>
     /// A transaction allowing read and write operations on a model
     /// </summary>
-    public class XbimReadWriteTransaction : XbimReadTransaction, ITransaction
+    public class XbimReadWriteTransaction : XbimReadTransaction, FilePersistedTransaction
     {
         private EsentLazyDBTransaction _readWriteTransaction;
         private int _pulseCount;
@@ -27,7 +27,8 @@ namespace Xbim.IO.Esent
 
         public string Name { get; protected set; }
 
-        internal XbimReadWriteTransaction(EsentModel model, EsentLazyDBTransaction txn, string name = null)
+        // todo: remove ESENT
+        internal XbimReadWriteTransaction(FilePersistedModel model, EsentLazyDBTransaction txn, string name = null)
         {
             Name = name;
             Model = model;

@@ -13,14 +13,14 @@ namespace Xbim.IO.Esent
 
         public override void Close(IModel model)
         {
-            if (model is EsentModel esentSub)
+            if (model is FilePersistedModel esentSub)
                 esentSub.Close();
         }
 
         public override IModel Create(XbimSchemaVersion ifcVersion, string dbPath)
         {
             var factory = GetFactory(ifcVersion);
-            return EsentModel.CreateModel(factory, dbPath);
+            return FilePersistedModel.CreateModel(factory, dbPath);
         }
 
         public override IModel Create(XbimSchemaVersion ifcVersion, XbimStoreType storageType)
@@ -28,7 +28,7 @@ namespace Xbim.IO.Esent
             var factory = GetFactory(ifcVersion);
             if (storageType == XbimStoreType.EsentDatabase)
             {
-                return EsentModel.CreateTemporaryModel(factory);
+                return FilePersistedModel.CreateTemporaryModel(factory);
             }
             throw new NotSupportedException($"{storageType} is not a supported Storage Type");
         }
@@ -37,7 +37,7 @@ namespace Xbim.IO.Esent
         {
             if (model == null)
                 return null;
-            if (model is EsentModel esentModel)
+            if (model is FilePersistedModel esentModel)
             {
                 return esentModel.DatabaseName;
             }
@@ -56,7 +56,7 @@ namespace Xbim.IO.Esent
                 return Memory.MemoryModel.GetSchemaVersion(modelPath);
             }
 
-            var stepHeader = EsentModel.GetStepFileHeader(modelPath);
+            var stepHeader = FilePersistedModel.GetStepFileHeader(modelPath);
             IList<string> schemas = stepHeader.FileSchema.Schemas;
             var schemaIdentifier = string.Join(", ", schemas);
             foreach (var schema in schemas)
@@ -182,7 +182,7 @@ namespace Xbim.IO.Esent
 
         public override void Persist(IModel model, string fileName, ReportProgressDelegate progDelegate = null)
         {
-            if (model is EsentModel esentModel)
+            if (model is FilePersistedModel esentModel)
             {
                 var fullSourcePath = Path.GetFullPath(esentModel.DatabaseName);
                 var fullTargetPath = Path.GetFullPath(fileName);
@@ -196,17 +196,17 @@ namespace Xbim.IO.Esent
 
             // Create a new Esent model for this Model => Model copy
             var factory = GetFactory(model.SchemaVersion);
-            using (var esentDb = new EsentModel(factory))
+            using (var esentDb = new FilePersistedModel(factory))
             {
                 esentDb.CreateFrom(model, fileName, progDelegate);
                 esentDb.Close();
             }
         }
 
-        private EsentModel CreateEsentModel(XbimSchemaVersion schema, int codePageOverride)
+        private FilePersistedModel CreateEsentModel(XbimSchemaVersion schema, int codePageOverride)
         {
             var factory = GetFactory(schema);
-            var model = new EsentModel(factory)
+            var model = new FilePersistedModel(factory)
             {
                 CodePageOverride = codePageOverride
             };

@@ -18,7 +18,7 @@ namespace Xbim.Essentials.Tests
         [TestMethod]
         public void EsentDataRetrieval()
         {
-            using (var model = new EsentModel(new EntityFactoryIfc2x3()))
+            using (var model = new FilePersistedModel(new EntityFactoryIfc2x3()))
             {
                 model.CreateFrom("4walls1floorSite.ifc", null, null, true);
 

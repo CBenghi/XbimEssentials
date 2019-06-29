@@ -11,7 +11,7 @@ using System.Security.Cryptography;
 
 namespace Xbim.IO.Esent
 {
-    public class XbimGeometryCursor : EsentCursor
+    public class EsentXbimGeometryCursor : EsentCursor
     {
        
     
@@ -146,11 +146,11 @@ namespace Xbim.IO.Esent
             _colValues = new ColumnValue[] { _colValGeomType, _colValProductLabel, _colValProductIfcTypeId, _colValSubPart, _colValTransformMatrix, _colValShapeData, _colValGeometryHash , _colValStyleLabel};
 
         }
-        public XbimGeometryCursor(EsentModel model, string database)
+        public EsentXbimGeometryCursor(FilePersistedModel model, string database)
             : this(model, database, OpenDatabaseGrbit.None)
         {
         }
-        public XbimGeometryCursor(EsentModel model, string database, OpenDatabaseGrbit mode)
+        public EsentXbimGeometryCursor(FilePersistedModel model, string database, OpenDatabaseGrbit mode)
             : base(model, database, mode)
         {
             Api.JetOpenTable(Sesid, DbId, GeometryTableName, null, 0, mode == OpenDatabaseGrbit.ReadOnly ? OpenTableGrbit.ReadOnly :

@@ -14,7 +14,7 @@ namespace Xbim.Essentials.Tests
         [DeploymentItem(@"GeometryCacheTestFiles\", @"Persistency\")]
         public void CanUpgradeDbStucture()
         {
-            using (var m = new EsentModel(new EntityFactoryIfc4()))
+            using (var m = new FilePersistedModel(new EntityFactoryIfc4()))
             {
                 m.Open(@"Persistency\Monolith_v10.xBIM", XbimDBAccess.Exclusive);
                 Assert.AreEqual(1, m.GeometrySupportLevel, "GeometrySupportLevel for Monolith_v10 should be 1");

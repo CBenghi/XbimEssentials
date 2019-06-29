@@ -25,7 +25,7 @@ namespace Xbim.IO.Esent
         /// </summary>
         protected JET_TABLEID Table;
 
-        protected EsentModel Model;
+        protected FilePersistedModel Model;
         /// <summary>
         /// Global Table
         /// </summary>
@@ -52,7 +52,7 @@ namespace Xbim.IO.Esent
 
         public bool ReadOnly { get; set; }
 
-        protected EsentCursor(EsentModel model, string database,  OpenDatabaseGrbit mode)
+        protected EsentCursor(FilePersistedModel model, string database,  OpenDatabaseGrbit mode)
         {
             LockObject = new Object();
             Model = model;
@@ -145,8 +145,6 @@ namespace Xbim.IO.Esent
                 transaction.Commit(CommitTransactionGrbit.LazyFlush);
             }
         }
-
-       
 
         public EsentLazyDBTransaction BeginLazyTransaction()
         {
