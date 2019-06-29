@@ -10,7 +10,7 @@ using Xbim.IO.Step21.Parser;
 
 namespace Xbim.IO
 {
-    public static class PersistEntityExtensions
+    internal static class PersistEntityExtensions
     {
 
         #region Write the properties of an IPersistEntity to a stream
