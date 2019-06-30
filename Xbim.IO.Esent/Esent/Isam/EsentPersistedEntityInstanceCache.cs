@@ -16,6 +16,10 @@ namespace Xbim.IO.Esent
 {
     public class EsentPersistedEntityInstanceCache : IDisposable, IFilePersistedStorage
     {
+        // todo: move cached tables from this class to the FilePersistedCache.
+        // this requires splitting the GetXTables functions in the cache management and 
+        // table creation features, so that only the table creation is done here.
+
         /// <summary>
         /// Holds a collection of all currently opened instances in this process
         /// </summary>
@@ -49,6 +53,7 @@ namespace Xbim.IO.Esent
                 return OpenInstances.Count;
             }
         }
+
         /// <summary>
         /// Holds the session and transaction state
         /// </summary>
@@ -60,11 +65,9 @@ namespace Xbim.IO.Esent
 
         #endregion
      
-
         private string _databaseName;
         private readonly FilePersistedModel _model;
         private bool _disposed;
-        
         
 
         public EsentPersistedEntityInstanceCache(FilePersistedModel model, IEntityFactory factory)
@@ -113,11 +116,6 @@ namespace Xbim.IO.Esent
             }
         }
 
-        public bool EnsureGeometryTables()
-        {
-            return EnsureGeometryTables(_session, _databaseId);
-        }
-
         public void ClearGeometryTables()
         {
             try
@@ -153,7 +151,11 @@ namespace Xbim.IO.Esent
             {
                 throw new Exception("Could not clear existing geometry tables", e);
             }
+        }
 
+        public bool EnsureGeometryTables()
+        {
+            return EnsureGeometryTables(_session, _databaseId);
         }
 
         private static bool EnsureGeometryTables(Session session, JET_DBID dbid)
@@ -256,7 +258,8 @@ namespace Xbim.IO.Esent
             return openMode;
         }
 
-        public (XbimReadWriteTransaction transaction, IFilePeristedEntityCursor entityCursor) BeginTransaction(FilePersistedModel filePersistedModel, string operationName)
+        public (XbimReadWriteTransaction transaction, IFilePeristedEntityCursor entityCursor) 
+            BeginTransaction(FilePersistedModel filePersistedModel, string operationName)
         {
             var editTransactionEntityCursor = GetWriteableEntityTable();
             var txn = new XbimReadWriteTransaction(filePersistedModel, editTransactionEntityCursor.BeginLazyTransaction(), operationName);
@@ -656,11 +659,7 @@ namespace Xbim.IO.Esent
                 FreeTable(geomTable);
             }
         }
-
         
-       
-        
-
         public string DatabaseName
         {
             get
@@ -683,7 +682,6 @@ namespace Xbim.IO.Esent
                 var entityTable = GetEntityTable();
                 try
                 {
-
                     int label;
                     if (entityTable.TryMoveFirstLabel(out label)) // we have something
                     {
@@ -829,5 +827,3 @@ namespace Xbim.IO.Esent
         }
     }
 }
-
-
