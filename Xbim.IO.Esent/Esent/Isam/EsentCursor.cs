@@ -45,10 +45,7 @@ namespace Xbim.IO.Esent
         public Session Session { get { return Sesid; } }
         protected readonly object LockObject;
 
-       
         private static string ifcHeaderColumnName = "IfcHeader";
-
-
 
         public bool ReadOnly { get; set; }
 
@@ -56,7 +53,10 @@ namespace Xbim.IO.Esent
         {
             LockObject = new Object();
             Model = model;
-            Instance = model.Cache.JetInstance;
+
+            // cast to known type of persistence to get the required identity.
+            //
+            Instance = ((EsentPersistedEntityInstanceCache)(model.Cache)).JetInstance;
             Sesid = new Session(Instance);
             Api.JetOpenDatabase(Sesid, database, String.Empty, out DbId, mode);
             Api.JetOpenTable(Sesid, DbId, GlobalsTableName, null, 0,  mode == OpenDatabaseGrbit.ReadOnly ? OpenTableGrbit.ReadOnly : 

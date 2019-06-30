@@ -396,7 +396,7 @@ namespace Xbim.IO.Esent
         /// <returns></returns>
         internal IPersistEntity GetInstanceVolatile(int label)
         {
-            return InstanceCache.GetInstance(label, true, true);
+            return GetInstance(label, true, true);
         }
 
         /// <summary>
@@ -406,7 +406,15 @@ namespace Xbim.IO.Esent
         {
             get
             {
-                return InstanceCache.GeometriesCount();
+                var geomTable = GetGeometryTable();
+                try
+                {
+                    return geomTable.RetrieveCount();
+                }
+                finally
+                {
+                    FreeTable(geomTable);
+                }
             }
         }
 
@@ -443,16 +451,16 @@ namespace Xbim.IO.Esent
             switch (toImportStorageType)
             {
                 case StorageType.IfcXml:
-                    InstanceCache.ImportIfcXml(xbimDbName, importFrom, progDelegate, keepOpen, cacheEntities);
+                    ImportIfcXml(xbimDbName, importFrom, progDelegate, keepOpen, cacheEntities);
                     break;
                 case StorageType.Ifc:
                 case StorageType.Stp:
-                    InstanceCache.ImportStep(xbimDbName, importFrom, progDelegate, keepOpen, cacheEntities, _codePageOverrideForStepFiles);
+                    ImportStep(xbimDbName, importFrom, progDelegate, keepOpen, cacheEntities, _codePageOverrideForStepFiles);
                     break;
                 case StorageType.IfcZip:
                 case StorageType.StpZip:
                 case StorageType.Zip:
-                    InstanceCache.ImportZip(xbimDbName, importFrom, progDelegate, keepOpen, cacheEntities, _codePageOverrideForStepFiles);
+                    ImportZip(xbimDbName, importFrom, progDelegate, keepOpen, cacheEntities, _codePageOverrideForStepFiles);
                     break;
                 case StorageType.Xbim:
                     throw new NotImplementedException("Use SaveAs() or CreateFrom(IModel)");
@@ -470,13 +478,13 @@ namespace Xbim.IO.Esent
             if (streamType.HasFlag(StorageType.IfcZip) ||
                 streamType.HasFlag(StorageType.StpZip) ||
                 streamType.HasFlag(StorageType.Zip))
-                Cache.ImportZip(xbimDbName, inputStream, progDelegate, keepOpen, cacheEntities, _codePageOverrideForStepFiles);
+                ImportZip(xbimDbName, inputStream, progDelegate, keepOpen, cacheEntities, _codePageOverrideForStepFiles);
             else if (streamType.HasFlag(StorageType.Ifc) ||
                 streamType.HasFlag(StorageType.Stp))
-                Cache.ImportStep(xbimDbName, inputStream, streamSize, progDelegate, keepOpen, cacheEntities, _codePageOverrideForStepFiles);
+                ImportStep(xbimDbName, inputStream, streamSize, progDelegate, keepOpen, cacheEntities, _codePageOverrideForStepFiles);
             else if (streamType.HasFlag(StorageType.IfcXml))
             {
-                Cache.ImportIfcXml(xbimDbName, inputStream, progDelegate, keepOpen, cacheEntities);
+                ImportIfcXml(xbimDbName, inputStream, progDelegate, keepOpen, cacheEntities);
             }
             return true;
         }
@@ -548,17 +556,7 @@ namespace Xbim.IO.Esent
 
         #endregion
 
-        public byte[] GetEntityBinaryData(IInstantiableEntity entity)
-        {
-            if (!entity.Activated) //we have it in memory but not written to store yet
-            {
-                var entityStream = new MemoryStream(4096);
-                var entityWriter = new BinaryWriter(entityStream);
-                entity.WriteEntity(entityWriter, Metadata);
-                return entityStream.ToArray();
-            }
-            return InstanceCache.GetEntityBinaryData(entity);
-        }
+       
 
         public IStepFileHeader Header
         {
@@ -732,7 +730,7 @@ namespace Xbim.IO.Esent
                         Open(srcFile, accessMode);
                     }
                 }
-                InstanceCache.SaveAs(storageType.Value, outputFileName, progress, map);
+                SaveAs(storageType.Value, outputFileName, progress, map);
                 return true;
             }
             catch (Exception e)
@@ -744,7 +742,10 @@ namespace Xbim.IO.Esent
 
         public void Print()
         {
-            InstanceCache.Print();
+            Debug.WriteLine(InstanceHandles.Count());
+            Debug.WriteLine(HighestLabel);
+            Debug.WriteLine(Count);
+            Debug.WriteLine(GeometriesCount);
         }
 
         ~FilePersistedModel()
@@ -776,7 +777,8 @@ namespace Xbim.IO.Esent
                         Close();
                     }
                     //unmanaged, mostly esent related
-                    if (_geometryStore != null) _geometryStore.Dispose();
+                    if (_geometryStore != null)
+                        _geometryStore.Dispose();
                     InstanceCache.Dispose();
                 }
                 catch
@@ -797,12 +799,29 @@ namespace Xbim.IO.Esent
 
         public XbimGeometryHandleCollection GetGeometryHandles(XbimGeometryType geomType = XbimGeometryType.TriangulatedMesh, XbimGeometrySort sortOrder = XbimGeometrySort.OrderByIfcSurfaceStyleThenIfcType)
         {
-            return InstanceCache.GetGeometryHandles(geomType, sortOrder);
+            //Get a cached or open a new Table
+            var geometryTable = GetGeometryTable();
+            try
+            {
+                return geometryTable.GetGeometryHandles(geomType, sortOrder);
+            }
+            finally
+            {
+                FreeTable(geometryTable);
+            }
         }
 
         public XbimGeometryHandle GetGeometryHandle(int geometryLabel)
         {
-            return InstanceCache.GetGeometryHandle(geometryLabel);
+            var geometryTable = GetGeometryTable();
+            try
+            {
+                return geometryTable.GetGeometryHandle(geometryLabel);
+            }
+            finally
+            {
+                FreeTable(geometryTable);
+            }
         }
 
         /// <summary>
@@ -815,7 +834,7 @@ namespace Xbim.IO.Esent
         /// <returns></returns>
         public IEnumerable<XbimGeometryData> GetGeometryData(int productLabel, XbimGeometryType geomType)
         {
-            var entity = InstanceCache.GetInstance(productLabel, false, true);
+            var entity = GetInstance(productLabel, false, true);
             if (entity != null)
             {
                 foreach (var item in InstanceCache.GetGeometry(Metadata.ExpressTypeId(entity), productLabel, geomType))
@@ -865,7 +884,17 @@ namespace Xbim.IO.Esent
 
         public IEnumerable<XbimGeometryData> GetGeometryData(XbimGeometryType ofType)
         {
-            return InstanceCache.GetGeometryData(ofType);
+            //Get a cached or open a new Table
+            var geometryTable = GetGeometryTable();
+            try
+            {
+                foreach (var shape in geometryTable.GetGeometryData(ofType))
+                    yield return shape;
+            }
+            finally
+            {
+                FreeTable(geometryTable);
+            }
         }
 
         internal EsentEntityCursor GetEntityTable()
@@ -873,9 +902,13 @@ namespace Xbim.IO.Esent
             return InstanceCache.GetEntityTable();
         }
 
+        /// <summary>
+        /// The model should be closed when calling this method.
+        /// </summary>
+        /// <param name="targetModelName"></param>
         public void Compact(string targetModelName)
         {
-            Cache.Compact(targetModelName);
+            Cache.CompactTo(targetModelName);
         }
 
         /// <summary>
@@ -890,12 +923,12 @@ namespace Xbim.IO.Esent
         /// <returns></returns>
         public T InsertCopy<T>(T toCopy, XbimInstanceHandleMap mappings, XbimReadWriteTransaction txn, bool includeInverses = false) where T : IPersistEntity
         {
-            return Cache.InsertCopy(toCopy, mappings, txn, includeInverses);
+            return InsertCopy(toCopy, mappings, txn, includeInverses);
         }
 
         public T InsertCopy<T>(T toCopy, XbimInstanceHandleMap mappings, XbimReadWriteTransaction txn, PropertyTranformDelegate propTransform, bool includeInverses = false) where T : IPersistEntity
         {
-            return Cache.InsertCopy(toCopy, mappings, txn, includeInverses, propTransform);
+            return InsertCopy(toCopy, mappings, txn, includeInverses, propTransform);
         }
 
         /// <summary>
@@ -912,20 +945,20 @@ namespace Xbim.IO.Esent
         public T InsertCopy<T>(T toCopy, XbimInstanceHandleMap mappings, PropertyTranformDelegate propTransform, bool includeInverses, bool keepLabels) where T : IPersistEntity
         {
             var txn = CurrentTransaction as XbimReadWriteTransaction;
-            return Cache.InsertCopy(toCopy, mappings, txn, includeInverses, propTransform, keepLabels);
+            return InsertCopy(toCopy, mappings, txn, includeInverses, propTransform, keepLabels);
         }
 
         internal void EndTransaction()
         {
             //FreeTable(_editTransactionEntityCursor); //release the cursor back to the pool
-            InstanceCache.EndCaching();
+            EndCaching();
             _editTransactionEntityCursor.Dispose();
             _editTransactionEntityCursor = null;
         }
 
         internal void Flush()
         {
-            InstanceCache.Write(_editTransactionEntityCursor);
+            Write(_editTransactionEntityCursor);
         }
 
         internal IFilePeristedEntityCursor GetTransactingCursor()
@@ -944,17 +977,47 @@ namespace Xbim.IO.Esent
 
         public XbimGeometryData GetGeometryData(XbimGeometryHandle handle)
         {
-            return InstanceCache.GetGeometryData(handle);
+            //Get a cached or open a new Table
+            var geometryTable = GetGeometryTable();
+            try
+            {
+                return geometryTable.GetGeometryData(handle);
+            }
+            finally
+            {
+                FreeTable(geometryTable);
+            }
         }
 
         public XbimGeometryData GetGeometryData(int geomLabel)
         {
-            return InstanceCache.GetGeometryData(geomLabel);
+            //Get a cached or open a new Table
+            var geometryTable = GetGeometryTable();
+            try
+            {
+                return geometryTable.GetGeometryData(geomLabel);
+            }
+            finally
+            {
+                FreeTable(geometryTable);
+            }
         }
 
         public IEnumerable<XbimGeometryData> GetGeometryData(IEnumerable<XbimGeometryHandle> handles)
         {
-            return InstanceCache.GetGeometryData(handles);
+            //Get a cached or open a new Table
+            var geometryTable = GetGeometryTable();
+            try
+            {
+                foreach (var item in geometryTable.GetGeometryData(handles))
+                {
+                    yield return item;
+                }
+            }
+            finally
+            {
+                FreeTable(geometryTable);
+            }
         }
                
 

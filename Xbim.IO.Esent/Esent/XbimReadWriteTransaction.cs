@@ -101,7 +101,7 @@ namespace Xbim.IO.Esent
 
         public IEnumerable<IInstantiableEntity> Modified()
         {
-            return Model.Cache.Modified().OfType<IInstantiableEntity>();
+            return Model.Modified().OfType<IInstantiableEntity>();
         }
 
         string ITransaction.Name

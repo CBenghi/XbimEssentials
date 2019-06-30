@@ -1,23 +1,14 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Xml;
 using Xbim.Common;
 using Xbim.Common.Exceptions;
 using Xbim.Common.Geometry;
-using Xbim.Common.Metadata;
-using Xbim.IO.Step21;
-using Xbim.IO.Step21.Parser;
 using Microsoft.Extensions.Logging;
-using System.IO.Compression;
-using Xbim.IO.Xml;
-using Xbim.Common.Step21;
 using Microsoft.Isam.Esent.Interop;
 using Microsoft.Isam.Esent.Interop.Windows7;
 
@@ -96,7 +87,7 @@ namespace Xbim.IO.Esent
         /// throw a create failed exception if unsuccessful
         /// </summary>
         /// <returns></returns>
-        internal void CreateDatabase(string fileName)
+        public void CreateDatabase(string fileName)
         {
             using (var session = new Session(_jetInstance))
             {
@@ -122,12 +113,12 @@ namespace Xbim.IO.Esent
             }
         }
 
-        internal bool EnsureGeometryTables()
+        public bool EnsureGeometryTables()
         {
             return EnsureGeometryTables(_session, _databaseId);
         }
 
-        internal void ClearGeometryTables()
+        public void ClearGeometryTables()
         {
             try
             {
@@ -183,7 +174,7 @@ namespace Xbim.IO.Esent
         /// Returns a cached or new entity table, assumes the database filename has been specified
         /// </summary>
         /// <returns></returns>
-        internal EsentEntityCursor GetEntityTable()
+        public EsentEntityCursor GetEntityTable()
         {
             Debug.Assert(!string.IsNullOrEmpty(_databaseName));
             lock (_lockObject)
@@ -276,7 +267,7 @@ namespace Xbim.IO.Esent
         /// Returns a cached or new Geometry Table, assumes the database filename has been specified
         /// </summary>
         /// <returns></returns>
-        internal EsentXbimGeometryCursor GetGeometryTable()
+        public EsentXbimGeometryCursor GetGeometryTable()
         {
             Debug.Assert(!string.IsNullOrEmpty(_databaseName));
             lock (_lockObject)
@@ -300,7 +291,7 @@ namespace Xbim.IO.Esent
         /// and dispose of it otherwise.
         /// </summary>
         /// <param name="table">The cursor to free.</param>
-        internal void FreeTable(EsentEntityCursor table)
+        public void FreeTable(EsentEntityCursor table)
         {
             Debug.Assert(null != table, "Freeing a null table");
 
@@ -573,65 +564,7 @@ namespace Xbim.IO.Esent
 
             return jetInstance;
         }
-
-        #region Import functions
-
-        public void ImportModel(IModel fromModel, string xbimDbName, ReportProgressDelegate progressHandler = null)
-        {
-            CreateDatabase(xbimDbName);
-            Open(xbimDbName, XbimDBAccess.Exclusive);
-
-            try
-            {
-                using (var transaction = Model.BeginTransaction())
-                {
-                    var table = Model.GetTransactingCursor();
-                    foreach (var instance in fromModel.Instances)
-                    {
-                        table.AddEntity(instance);
-                        transaction.Pulse();
-                    }
-                    table.WriteHeader(fromModel.Header);
-                    transaction.Commit();
-                }
-                //copy geometry over
-
-                var readGeomStore = fromModel.GeometryStore;
-                using (var writeGeomStore = Model.GeometryStore)
-                {
-                    using (var writer = writeGeomStore.BeginInit())
-                    {
-                        using (var reader = readGeomStore.BeginRead())
-                        {
-                            foreach (var shapeGeom in reader.ShapeGeometries)
-                            {
-                                writer.AddShapeGeometry(shapeGeom);
-                            }
-                            foreach (var shapeInstance in reader.ShapeInstances)
-                            {
-                                writer.AddShapeInstance(shapeInstance, shapeInstance.ShapeGeometryLabel);
-                            }
-                            foreach (var regions in reader.ContextRegions)
-                            {
-                                writer.AddRegions(regions);
-                            }
-                        }
-                        writer.Commit();
-                    }
-                }
-                Close();
-            }
-            catch (Exception)
-            {
-                Close();
-                File.Delete(xbimDbName);
-                throw;
-            }
-        }
-        
-        #endregion
-        
-    
+            
 
         public void Dispose()
         {
@@ -724,39 +657,8 @@ namespace Xbim.IO.Esent
             }
         }
 
-        /// <summary>
-        /// Iterates over all the shape geoemtry
-        /// This is a thread safe operation and can be accessed in background threads
-        /// </summary>
-        /// <param name="ofType"></param>
-        /// <returns></returns>
-        public IEnumerable<XbimGeometryData> GetGeometryData(XbimGeometryType ofType)
-        {
-            //Get a cached or open a new Table
-            var geometryTable = GetGeometryTable();
-            try
-            {
-                foreach (var shape in geometryTable.GetGeometryData(ofType))
-                    yield return shape;
-            }
-            finally
-            {
-                FreeTable(geometryTable);
-            }
-        }
-
-        internal long GeometriesCount()
-        {
-            var geomTable = GetGeometryTable();
-            try
-            {
-                return geomTable.RetrieveCount();
-            }
-            finally
-            {
-                FreeTable(geomTable);
-            }
-        }
+        
+       
         
 
         public string DatabaseName
@@ -799,75 +701,11 @@ namespace Xbim.IO.Esent
             }
         }
 
-       
-
-     
-
         public bool HasDatabaseInstance
         {
             get
             {
                 return _jetInstance != null;
-            }
-        }
-
-       
-
-        internal XbimGeometryHandleCollection GetGeometryHandles(XbimGeometryType geomType = XbimGeometryType.TriangulatedMesh, XbimGeometrySort sortOrder = XbimGeometrySort.OrderByIfcSurfaceStyleThenIfcType)
-        {
-            //Get a cached or open a new Table
-            var geometryTable = GetGeometryTable();
-            try
-            {
-                return geometryTable.GetGeometryHandles(geomType, sortOrder);
-            }
-            finally
-            {
-                FreeTable(geometryTable);
-            }
-        }
-
-        internal XbimGeometryData GetGeometryData(XbimGeometryHandle handle)
-        {
-            //Get a cached or open a new Table
-            var geometryTable = GetGeometryTable();
-            try
-            {
-                return geometryTable.GetGeometryData(handle);
-            }
-            finally
-            {
-                FreeTable(geometryTable);
-            }
-        }
-
-        internal IEnumerable<XbimGeometryData> GetGeometryData(IEnumerable<XbimGeometryHandle> handles)
-        {
-            //Get a cached or open a new Table
-            var geometryTable = GetGeometryTable();
-            try
-            {
-                foreach (var item in geometryTable.GetGeometryData(handles))
-                {
-                    yield return item;
-                }
-            }
-            finally
-            {
-                FreeTable(geometryTable);
-            }
-        }
-
-        internal XbimGeometryHandle GetGeometryHandle(int geometryLabel)
-        {
-            var geometryTable = GetGeometryTable();
-            try
-            {
-                return geometryTable.GetGeometryHandle(geometryLabel);
-            }
-            finally
-            {
-                FreeTable(geometryTable);
             }
         }
 
@@ -881,21 +719,7 @@ namespace Xbim.IO.Esent
             }
         }
 
-        internal XbimGeometryData GetGeometryData(int geomLabel)
-        {
-            //Get a cached or open a new Table
-            var geometryTable = GetGeometryTable();
-            try
-            {
-                return geometryTable.GetGeometryData(geomLabel);
-            }
-            finally
-            {
-                FreeTable(geometryTable);
-            }
-        }
-
-        internal EsentShapeGeometryCursor GetShapeGeometryTable()
+        public EsentShapeGeometryCursor GetShapeGeometryTable()
         {
             Debug.Assert(!string.IsNullOrEmpty(_databaseName));
             lock (_lockObject)
@@ -934,7 +758,7 @@ namespace Xbim.IO.Esent
         /// Deletes the geometric content of the model.
         /// </summary>
         /// <returns>True if successful.</returns>
-        internal bool DeleteGeometry()
+        public bool DeleteGeometry()
         {
             CleanTableArrays(true);
             var returnVal = true;
@@ -945,22 +769,22 @@ namespace Xbim.IO.Esent
         }
 
 
-        internal bool DatabaseHasInstanceTable()
+        public bool DatabaseHasInstanceTable()
         {
             return HasTable(EsentShapeInstanceCursor.InstanceTableName);
         }
 
-        internal bool DatabaseHasGeometryTable()
+        public bool DatabaseHasGeometryTable()
         {
             return HasTable(EsentXbimGeometryCursor.GeometryTableName);
         }
 
-        internal bool HasTable(string name)
+        public bool HasTable(string name)
         {
             return HasTable(name, _session, _databaseId);
         }
 
-        internal void Compact(string targetName)
+        public void CompactTo(string targetName)
         {
             using (var session = new Session(_jetInstance))
             {
@@ -968,8 +792,8 @@ namespace Xbim.IO.Esent
                 Api.JetAttachDatabase(session, _databaseName, AttachDatabaseGrbit.None);
                 Api.JetCompact(session, _databaseName, targetName, null, null, CompactGrbit.None);
             }
-
         }
+
         private static bool HasTable(string name, Session sess, JET_DBID db)
         {
             JET_TABLEID t;
@@ -979,7 +803,7 @@ namespace Xbim.IO.Esent
             return has;
         }
 
-        internal EsentShapeInstanceCursor GetShapeInstanceTable()
+        public EsentShapeInstanceCursor GetShapeInstanceTable()
         {
             Debug.Assert(!string.IsNullOrEmpty(_databaseName));
             lock (_lockObject)

@@ -26,19 +26,29 @@ namespace Xbim.IO.Esent
             get { return _esentModel; }
         }
 
-        private TableStatus _tableStatus = FilePersistedModel.TableStatus.Unknown;
+        
 
         private TableStatus TableStatus
         {
             get
             {
-                if (_tableStatus == TableStatus.Unknown)
+                EsentXbimGeometryCursor gt = null;
+                try
                 {
-                    _tableStatus = _esentModel.Cache.HasTable(EsentShapeGeometryCursor.GeometryTableName)
-                        ? TableStatus.Found
-                        : TableStatus.Missing;
+                    gt = _esentModel.GetGeometryTable();
+                    if (gt != null)
+                        return TableStatus.Found;
+                    return TableStatus.Missing;
                 }
-                return _tableStatus;
+                catch (Exception)
+                {
+                    return TableStatus.Missing;
+                }
+                finally
+                {
+                    if (gt != null)
+                        _esentModel.FreeTable(gt);
+                }
             }
         }
 

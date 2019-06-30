@@ -96,6 +96,58 @@ namespace Xbim.IO.Esent
             }
         }
 
+        public void ImportModel(IModel fromModel, string xbimDbName, ReportProgressDelegate progressHandler = null)
+        {
+            CreateDatabase(xbimDbName);
+            Open(xbimDbName, XbimDBAccess.Exclusive);
+
+            try
+            {
+                using (var transaction = BeginTransaction())
+                {
+                    var table = GetTransactingCursor();
+                    foreach (var instance in fromModel.Instances)
+                    {
+                        table.AddEntity(instance);
+                        transaction.Pulse();
+                    }
+                    table.WriteHeader(fromModel.Header);
+                    transaction.Commit();
+                }
+                //copy geometry over
+
+                var readGeomStore = fromModel.GeometryStore;
+                using (var writeGeomStore = GeometryStore)
+                {
+                    using (var writer = writeGeomStore.BeginInit())
+                    {
+                        using (var reader = readGeomStore.BeginRead())
+                        {
+                            foreach (var shapeGeom in reader.ShapeGeometries)
+                            {
+                                writer.AddShapeGeometry(shapeGeom);
+                            }
+                            foreach (var shapeInstance in reader.ShapeInstances)
+                            {
+                                writer.AddShapeInstance(shapeInstance, shapeInstance.ShapeGeometryLabel);
+                            }
+                            foreach (var regions in reader.ContextRegions)
+                            {
+                                writer.AddRegions(regions);
+                            }
+                        }
+                        writer.Commit();
+                    }
+                }
+                Close();
+            }
+            catch (Exception)
+            {
+                Close();
+                File.Delete(xbimDbName);
+                throw;
+            }
+        }
 
         public void ImportZip(string xbimDbName, string toImportFilename, ReportProgressDelegate progressHandler = null, bool keepOpen = false, bool cacheEntities = false, int codePageOverride = -1)
         {
@@ -948,6 +1000,18 @@ namespace Xbim.IO.Esent
         }
 
 
+        public byte[] GetEntityBinaryData(IInstantiableEntity entity)
+        {
+            if (!entity.Activated) //we have it in memory but not written to store yet
+            {
+                var entityStream = new MemoryStream(4096);
+                var entityWriter = new BinaryWriter(entityStream);
+                entity.WriteEntity(entityWriter, Metadata);
+                return entityStream.ToArray();
+            }
+            return GetEntityBinaryData(entity.EntityLabel);
+        }
+
         /// <summary>
         /// Gets the entities propertyData on binary stream
         /// </summary>
@@ -955,12 +1019,18 @@ namespace Xbim.IO.Esent
         /// <returns></returns>
         internal byte[] GetEntityBinaryData(IPersistEntity entity)
         {
+            var label = entity.EntityLabel;
+            return GetEntityBinaryData(label);
+        }
+
+        private byte[] GetEntityBinaryData(int label)
+        {
             var entityTable = GetEntityTable();
             try
             {
                 using (entityTable.BeginReadOnlyTransaction())
                 {
-                    if (entityTable.TrySeekEntityLabel(entity.EntityLabel))
+                    if (entityTable.TrySeekEntityLabel(label))
                         return entityTable.GetProperties();
                 }
             }
@@ -1314,6 +1384,8 @@ namespace Xbim.IO.Esent
         }
 
         #endregion
+
+      
 
 
     }
