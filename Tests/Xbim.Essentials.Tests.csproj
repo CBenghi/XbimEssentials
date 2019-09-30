@@ -54,6 +54,8 @@
     <Service Include="{82a7f48d-3b50-4b1e-b82e-3ada8210c358}" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="SubmittedFiles\" />
+    <Folder Include="XsdSchemas\" />
     <Folder Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
@@ -80,6 +82,9 @@
     </None>
     <None Update="GeometryCacheTestFiles\Monolith_v20.xBIM">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="SubmittedFiles\SomeBadIFCSURFACESTYLE.ifc">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="TestFiles\2016-02-29-Dormitory-COBie.xlsx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -169,6 +174,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="TestFiles\LakesideRestaurant.cobieZip">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestFiles\LargeTriangulatedCoordinates.ifc">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="TestFiles\mapped-shape-with-transformation.ifc">
@@ -301,6 +309,30 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="TestSourceFiles\xbim.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="XsdSchemas\ex.xsd">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="XsdSchemas\IFC2X3.xsd">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="XsdSchemas\IFC4.xsd">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="XsdSchemas\IFC4x1.xsd">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="XsdSchemas\IFC4x2.xsd">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="XsdSchemas\IFC4_ADD1.xsd">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="XsdSchemas\IFC4_ADD2.xsd">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="XsdSchemas\ifcXML4.xsd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

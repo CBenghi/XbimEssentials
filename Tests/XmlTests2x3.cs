@@ -13,26 +13,19 @@ namespace Xbim.Essentials.Tests
 {
     [TestClass]
     [DeploymentItem("TestFiles")]
+    [DeploymentItem("XsdSchemas")]
     public class XmlTests2X3
     {
-        private static readonly NetworkConnection Network = new NetworkConnection();
-
         [TestMethod]
         public void Ifc2X3XMLSerialization()
         {
-            // if there's no network a message is asserted, but then this test passes 
-            // to prevent concerns when testing the solution offline (which would appear to fail)
-            //
-            if (!Network.Available)
-                return;
-
             const string output = "..\\..\\4walls1floorSite.ifcxml";
             using (var esent = new IO.Esent.FilePersistedModel(new EntityFactoryIfc2x3()))
             {
                 string fileName =  Guid.NewGuid() + ".xbim";
                 esent.CreateFrom("4walls1floorSite.ifc", fileName, null, true, true);
                 esent.SaveAs(output, StorageType.IfcXml);
-                var errs = ValidateIfc2X3("..\\..\\4walls1floorSite.ifcxml");
+                var errs = ValidateIfc2X3(output);
                 Assert.AreEqual(0, errs);
                 esent.Close();
             }
@@ -65,8 +58,8 @@ namespace Xbim.Essentials.Tests
             var dom = new XmlDocument();
             dom.Load(path);
             var schemas = new XmlSchemaSet();
-            schemas.Add("http://www.iai-tech.org/ifcXML/IFC2x3/FINAL", "http://www.iai-tech.org/ifcXML/IFC2x3/FINAL/IFC2X3.xsd");
-            schemas.Add("urn:iso.org:standard:10303:part(28):version(2):xmlschema:common","http://www.iai-tech.org/ifcXML/IFC2x3/FINAL/ex.xsd");
+            schemas.Add("http://www.iai-tech.org/ifcXML/IFC2x3/FINAL", "IFC2X3.xsd");
+            schemas.Add("urn:iso.org:standard:10303:part(28):version(2):xmlschema:common","ex.xsd");
             dom.Schemas = schemas;
             dom.Validate((sender, args) =>
             {

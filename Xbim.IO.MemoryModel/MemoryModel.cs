@@ -316,16 +316,18 @@ namespace Xbim.IO.Memory
         /// <param name="logger">Logger</param>
         /// <param name="progressDel">Progress delegate</param>
         /// <param name="ignoreTypes">A list of ifc types to skip</param>
+        /// <param name="allowMissingReferences">Allow referenced entities that are not in the model, default false</param>
         /// <returns>New memory model</returns>
-        public static MemoryModel OpenReadStep21(Stream stream, ILogger logger = null, ReportProgressDelegate progressDel = null, 
-            IEnumerable<string> ignoreTypes = null)
+        public static MemoryModel OpenReadStep21(Stream stream, ILogger logger = null, ReportProgressDelegate progressDel = null,
+           IEnumerable<string> ignoreTypes = null, bool allowMissingReferences = false)
         {
             var model = new MemoryModel((IEnumerable<string> schemas) =>
             {
                 var schema = GetStepFileXbimSchemaVersion(schemas);
                 return GetFactory(schema);
             }, logger);
-            model.LoadStep21(stream, stream.Length, progressDel, ignoreTypes);    
+            model.AllowMissingReferences = allowMissingReferences;
+            model.LoadStep21(stream, stream.Length, progressDel, ignoreTypes);
             return model;
         }
 
